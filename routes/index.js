@@ -7,6 +7,9 @@ module.exports = router => {
         'SELECT * FROM bookstore.authors;', [],
       ).catch(console.error);
 
+      ctx.set({
+        'Access-Control-Allow-Origin': '*',
+      });
       ctx.body = JSON.stringify(rows);
       ctx.status = 200;
     })
