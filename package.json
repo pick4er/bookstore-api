@@ -5,15 +5,17 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ./index.js"
+    "dev": "export NODE_ENV=development && node ./index.js",
+    "prod": "export NODE_ENV=production && node ./index.js"
   },
   "author": "pick4er",
   "license": "WTFPL",
   "dependencies": {
     "dotenv": "^8.0.0",
+    "knex": "^0.18.0",
     "koa": "^2.7.0",
-    "koa-router": "^7.4.0",
     "koa-logger": "^3.2.0",
+    "koa-router": "^7.4.0",
     "pg": "^7.11.0"
   },
   "devDependencies": {
