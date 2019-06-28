@@ -1,4 +1,3 @@
-const knex = require('knex');
 
 function isDebugMode() {
   return process.env.NODE_ENV === 'development';
@@ -22,16 +21,12 @@ function getConnection() {
 }
 
 
-module.exports = knex({
+module.exports = {
   client: 'pg',
-  version: '7.11',
   connection: getConnection(),
   pool: {
     min: 0,
     max: 10,
   },
-  migrations: {
-    tableName: 'migrations',
-  },
   debug: isDebugMode(),
-});
+};

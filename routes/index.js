@@ -1,11 +1,11 @@
-const knex = require('../knexfile');
+const db = require('../db');
 
 module.exports = router => {
   router
     .get('/authors', async ctx => {
-      const result = await knex
+      const result = await db
         .select()
-        .from('bookstore.authors');
+        .from('bookstore.authors_v');
 
       ctx.set({
         'Access-Control-Allow-Origin': '*',
@@ -14,9 +14,9 @@ module.exports = router => {
       ctx.status = 200;
     })
     .get('/books', async ctx => {
-      const result = await knex
+      const result = await db
         .select()
-        .from('bookstore.books');
+        .from('bookstore.catalog_v');
 
       ctx.set({
         'Access-Control-Allow-Origin': '*',
