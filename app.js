@@ -6,6 +6,8 @@ const router = new Router();
 
 require('./handlers/logger').init(app);
 require('./handlers/errors').init(app);
+require('./handlers/headers').init(app);
+require('./handlers/bodyParser').init(app);
 require('./routes')(router);
 
 app.use(router.routes());
