@@ -1,4 +1,5 @@
 const db = require('../db');
+const passport = require('../passport');
 
 async function getAuthors(ctx) {
   const result = await db
@@ -39,7 +40,7 @@ async function addAuthor(ctx) {
   ).catch(console.error);
 
   ctx.status = 200;
-  ctx.body = JSON.stringify(result);
+  ctx.body = JSON.stringify({ result: 'added' });
 }
 
 async function addBook(ctx) {
@@ -63,11 +64,22 @@ async function addBook(ctx) {
   ctx.body = JSON.stringify(result);
 }
 
+const login = passport.authenticate('local', {
+  failureFlash: false,
+  successFlash: false,
+});
+
+function onLoginSuccess(ctx) {
+  ctx.body = 'success';
+  ctx.status = 200;
+}
+
 module.exports = router => {
   router
     .get('/authors', getAuthors)
-    .post('/add_author', addAuthor)
+    .post('/add_author', login, addAuthor)
     .get('/books', getBooks)
-    .post('/add_book', addBook)
+    .post('/add_book', login, addBook)
+    .post('/login', login, onLoginSuccess)
     .all('*', getAll);
 };
