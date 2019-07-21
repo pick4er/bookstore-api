@@ -1,7 +1,7 @@
 
 const middleware = async (ctx, next) => {
   ctx.set({
-    'Access-Control-Allow-Origin': 'http://localhost:8000',
+    'Access-Control-Allow-Origin': process.env.FRONT_URL,
     'Access-Control-Allow-Methods':
       'GET, POST, PATCH, OPTIONS, PUT, DELETE',
     'Access-Control-Allow-Headers': 'Content-Type',

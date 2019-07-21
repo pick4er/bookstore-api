@@ -1,7 +1,7 @@
 const db = require('../db');
 const passport = require('../passport');
 
-async function getAuthors(ctx) {
+async function get_authors(ctx) {
   const result = await db
     .select()
     .from('bookstore.authors_v');
@@ -10,7 +10,7 @@ async function getAuthors(ctx) {
   ctx.status = 200;
 }
 
-async function getBooks(ctx) {
+async function get_books(ctx) {
   const result = await db
     .select()
     .from('bookstore.catalog_v');
@@ -19,12 +19,12 @@ async function getBooks(ctx) {
   ctx.status = 200;
 }
 
-function getAll(ctx) {
-  ctx.body = 'ok';
+function get_all(ctx) {
+  ctx.body = JSON.stringify({ status: 'ok' });
   ctx.status = 200;
 }
 
-async function addAuthor(ctx) {
+async function add_author(ctx) {
   const {
     first_name,
     middle_name,
@@ -43,7 +43,7 @@ async function addAuthor(ctx) {
   ctx.body = JSON.stringify({ result: 'added' });
 }
 
-async function addBook(ctx) {
+async function add_book(ctx) {
   const {
     title,
     authors,
@@ -66,26 +66,32 @@ async function addBook(ctx) {
 
 function login(ctx, next) {
   passport.authenticate('local', function(err, user, flash) {
-    ctx.body = JSON.stringify(flash);
-
     if (err) {
-      return next(err);
+      ctx.status = 500;
+      ctx.body = err;
+      return;
     }
+
+    ctx.body = JSON.stringify(flash);
 
     if (user) {
       ctx.login(user);
+      ctx.status = 200;
+    } else {
+      ctx.status = 401;
     }
-
-    return next();
   })(ctx, next);
 }
 
-function isAuthenticated(ctx, next) {
+function is_authenticated(ctx, next) {
   if (ctx.isAuthenticated()) {
     return next();
   } else {
     ctx.status = 401;
-    ctx.body = 'Unauthorized';
+    ctx.body = JSON.stringify({
+      status: 'error',
+      message: 'Unauthorized',
+    });
     return;
   }
 }
@@ -93,9 +99,10 @@ function isAuthenticated(ctx, next) {
 module.exports = router => {
   router
     .post('/login', login)
-    .get('/authors', isAuthenticated, getAuthors)
-    .post('/add_author', isAuthenticated, addAuthor)
-    .get('/books', getBooks)
-    .post('/add_book', isAuthenticated, addBook)
-    .all('*', getAll)
+    .get('/is_authenticated', is_authenticated)
+    .get('/authors', is_authenticated, get_authors)
+    .post('/add_author', is_authenticated, add_author)
+    .get('/books', get_books)
+    .post('/add_book', is_authenticated, add_book)
+    .all('*', get_all)
 };

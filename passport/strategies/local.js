@@ -7,9 +7,23 @@ module.exports = new LocalStrategy(
   },
   function(login, password, done) {
     if (login === process.env.LOGIN && password === process.env.PASSWORD) {
-      return done(null, { login, password }, { message: 'You are welcome' });
+      return done(
+        null, 
+        { login, password }, 
+        { 
+          status: 'ok',
+          message: 'You are welcome',
+        }
+      );
     } else {
-      return done(null, false, { message: 'Email or password invalid' });
+      return done(
+        null, 
+        false, 
+        { 
+          status: 'error',
+          message: 'Email or password invalid',
+        },
+      );
     }
   }
 );
