@@ -64,22 +64,38 @@ async function addBook(ctx) {
   ctx.body = JSON.stringify(result);
 }
 
-const login = passport.authenticate('local', {
-  failureFlash: false,
-  successFlash: false,
-});
+function login(ctx, next) {
+  passport.authenticate('local', function(err, user, flash) {
+    ctx.body = JSON.stringify(flash);
 
-function onLoginSuccess(ctx) {
-  ctx.body = 'success';
-  ctx.status = 200;
+    if (err) {
+      return next(err);
+    }
+
+    if (user) {
+      ctx.login(user);
+    }
+
+    return next();
+  })(ctx, next);
+}
+
+function isAuthenticated(ctx, next) {
+  if (ctx.isAuthenticated()) {
+    return next();
+  } else {
+    ctx.status = 401;
+    ctx.body = 'Unauthorized';
+    return;
+  }
 }
 
 module.exports = router => {
   router
-    .get('/authors', getAuthors)
-    .post('/add_author', login, addAuthor)
+    .post('/login', login)
+    .get('/authors', isAuthenticated, getAuthors)
+    .post('/add_author', isAuthenticated, addAuthor)
     .get('/books', getBooks)
-    .post('/add_book', login, addBook)
-    .post('/login', login, onLoginSuccess)
-    .all('*', getAll);
+    .post('/add_book', isAuthenticated, addBook)
+    .all('*', getAll)
 };

@@ -3,11 +3,11 @@ const passport = require('koa-passport');
 const localStrategy = require('./strategies/local');
 
 passport.serializeUser(function(user, done) {
-  done(null, user.login);
+  return done(null, user.login);
 });
 
 passport.deserializeUser(function(id, done) {
-  console.log('deserialize user with id: ', id);
+  return done(null, { login: process.env.LOGIN, password: process.env.PASSWORD });
 });
 
 passport.use(localStrategy);
