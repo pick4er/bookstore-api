@@ -1,15 +1,39 @@
 const passport = require('koa-passport');
 
-const localStrategy = require('./strategies/local');
+const db = require('../db');
+const local_strategy = require('./strategies/local');
 
-passport.serializeUser(function(user, done) {
-  return done(null, user.login);
+passport.serializeUser((user, done) => {
+  if (!user.email) {
+    return done(null, false, {
+      status: 'error',
+      message: 'Email не найден во время сериализации',
+    });
+  }
+
+  return done(null, user.email);
 });
 
-passport.deserializeUser(function(id, done) {
-  return done(null, { login: process.env.LOGIN, password: process.env.PASSWORD });
+passport.deserializeUser(async (email, done) => {
+  const result = await db.raw(
+    `SELECT * FROM bookstore.get_user_by(\
+      'email',\
+      '${email}'\
+    )`,
+  ).catch(console.error);
+
+  const user = result.rows[0];
+
+  if (!user) {
+    return done(null, false, {
+      status: 'error',
+      message: 'Пользователь не найден',
+    });
+  }
+
+  return done(null, user);
 });
 
-passport.use(localStrategy);
+passport.use(local_strategy);
 
 module.exports = passport;

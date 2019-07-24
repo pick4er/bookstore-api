@@ -4,7 +4,7 @@ const Router = require('koa-router');
 const app = new Koa();
 const router = new Router();
 
-app.keys = ['secret bengal cat'];
+app.keys = ['flowed tier forest'];
 
 require('./handlers/logger').init(app);
 require('./handlers/errors').init(app);
