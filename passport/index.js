@@ -17,8 +17,8 @@ passport.serializeUser((user, done) => {
 passport.deserializeUser(async (email, done) => {
   const result = await db.raw(
     `SELECT * FROM bookstore.get_user_by(\
-      'email',\
-      '${email}'\
+      'email'::text,\
+      '${email}'::text\
     )`,
   ).catch(console.error);
 

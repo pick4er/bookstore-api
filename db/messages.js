@@ -14,4 +14,9 @@ module.exports = function derive_message(e) {
       message: 'Логин уже существует. Пожалуйста, придумайте новый'
     }
   }
+
+  return {
+    status: 'undefined',
+    message: 'Необяснимая ошибка',
+  }
 }

@@ -3,6 +3,17 @@ const is_email_valid = require('../../utils/isEmailValid');
 
 const ITERATIONS = 10;
 const LENGTH = 128;
+const PRIVATE_FIELDS = ['salt', 'password_hash', 'hash'];
+const PROFILE_FIELDS = ['email', 'login', 'user_id'];
+const BILLING_FIELDS = [
+  'first_name',
+  'last_name',
+  'middle_name',
+  'billing_id',
+  'user_id',
+  'phone',
+  'shipping_address',
+];
 
 async function generate_hash(password, salt) {
   return new Promise((resolve, reject) => {
@@ -54,7 +65,21 @@ async function is_same_user(model_hash, salt, password) {
   return model_hash === hash;
 }
 
+function get_user_fields(user = {}) {
+  const nextUser = {};
+  Object.keys(user).forEach(key => {
+    if (PRIVATE_FIELDS.includes(key)) return;
+    nextUser[key] = user[key];
+  });
+
+  return nextUser;
+}
+
 module.exports = {
   create_user,
   is_same_user,
+  get_user_fields,
+  generate_hash,
+  PROFILE_FIELDS,
+  BILLING_FIELDS,
 };

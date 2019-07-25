@@ -2,7 +2,16 @@ const passport = require('../passport');
 
 const db = require('../db');
 const derive_message = require('../db/messages');
-const create_user = require('../db/models/user').create_user;
+const {
+  create_user,
+  get_user_fields,
+  generate_hash,
+} = require('../db/models/user');
+
+// Though it is a dirty hack
+// still acceptable for some time.
+// Refactor, if you know how to.
+const UNDEFINED_BILLING_ID = 0;
 
 async function get_authors(ctx) {
   const result = await db
@@ -75,13 +84,16 @@ function login(ctx, next) {
       return;
     }
 
-    ctx.body = JSON.stringify(flash);
-
     if (user) {
       ctx.login(user);
       ctx.status = 200;
+      ctx.body = JSON.stringify({
+        ...flash,
+        user: get_user_fields(user),
+      });
     } else {
       ctx.status = 401;
+      ctx.body = JSON.stringify(flash);
     }
   })(ctx, next);
 }
@@ -145,15 +157,116 @@ function is_authenticated(ctx, next) {
   }
 }
 
+function is_admin(ctx, next) {
+  if (ctx.state.user.login !== 'pick4er') {
+    ctx.status = 401;
+    ctx.body = 'Not allowed';
+
+    return;
+  }
+
+  return next();
+}
+
+function get_user(ctx, next) {
+  ctx.body = JSON.stringify({
+    status: 'ok',
+    user: get_user_fields(ctx.state.user),
+  });
+  ctx.status = 200;
+}
+
+async function change_user(ctx, next) {
+  const {
+    // profile fields
+    user_id,
+    email = '',
+    login = '',
+    password = '',
+    // billing fields
+    billing_id = UNDEFINED_BILLING_ID,
+    first_name = '',
+    last_name = '',
+    middle_name = '',
+    phone = '',
+    shipping_address = '',
+  } = ctx.request.body;
+
+  const {
+    salt,
+    user_id: authed_user_id,
+  } = ctx.state.user;
+  let { hash } = ctx.state.user;
+
+  if (authed_user_id !== user_id) {
+    ctx.status = 401;
+    ctx.body = JSON.stringify({
+      status: 'error',
+      message: 'Нельзя редактировать другого пользователя',
+    });
+
+    return;
+  }
+
+  if (password) {
+    hash = await generate_hash(salt, password);
+  }
+
+  let is_error = false;
+  await db.raw(
+    `CALL bookstore.change_user(\
+      ${user_id}::integer,\
+      '${email}'::text,\ 
+      '${hash}'::text,\ 
+      '${salt}'::text,\
+      NULLIF('${login}', ''),\
+      NULLIF(${billing_id}, 0),\ 
+      NULLIF('${first_name}', ''),\ 
+      NULLIF('${last_name}', ''),\
+      NULLIF('${middle_name}', ''),\ 
+      NULLIF('${phone}', ''),\ 
+      NULLIF('${shipping_address}', '')\
+    )`,
+  ).catch(e => {
+    is_error = true;
+    console.error(e);
+    ctx.status = 400;
+    ctx.body = JSON.stringify({ ...derive_message(e) });
+  });
+  if (is_error) return;
+
+  const response = await db.raw(
+    `SELECT * FROM bookstore.get_user_by(\
+      'user_id'::text,\
+      ${user_id}::integer\
+    )`,
+  ).catch(e => {
+    is_error = true;
+    console.error(e);
+    ctx.status = 400;
+    ctx.body = JSON.stringify({ ...derive_message(e) });
+  });
+  if (is_error) return;
+
+  const user = response.rows[0];
+  ctx.status = 200;
+  ctx.body = JSON.stringify({
+    status: 'ok',
+    message: 'Patched!',
+    user: get_user_fields(user),
+  });
+}
+
 module.exports = router => {
   router
     .post('/login', login)
     .post('/logout', is_authenticated, logout)
     .post('/register', register)
-    .get('/is_authenticated', is_authenticated)
-    .get('/authors', is_authenticated, get_authors)
-    .post('/add_author', is_authenticated, add_author)
+    .patch('/user', is_authenticated, change_user)
+    .get('/is_authenticated', is_authenticated, get_user)
+    .get('/authors', is_authenticated, is_admin, get_authors)
+    .post('/add_author', is_authenticated, is_admin, add_author)
     .get('/books', get_books)
-    .post('/add_book', is_authenticated, add_book)
+    .post('/add_book', is_authenticated, is_admin, add_book)
     .all('*', get_all);
 };

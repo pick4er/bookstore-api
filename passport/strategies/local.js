@@ -10,8 +10,8 @@ module.exports = new LocalStrategy(
   (async (email, password, done) => {
     const result = await db.raw(
       `SELECT * FROM bookstore.get_user_by(\
-        'email',\
-        '${email}'\
+        'email'::text,\
+        '${email}'::text\
       )`,
     ).catch(e => {
       console.error(e);
@@ -28,7 +28,7 @@ module.exports = new LocalStrategy(
     }
 
     const is_password_valid = await is_same_user(
-      user.password_hash,
+      user.hash,
       user.salt,
       password,
     ).catch(console.error);
