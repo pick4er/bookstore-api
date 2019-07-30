@@ -406,8 +406,36 @@ async function get_cart(ctx) {
   });
 }
 
-async function update_cart(ctx, next) {
-  await next();
+async function update_cart(ctx) {
+  const {
+    user_id,
+    book_id,
+    qty,
+  } = ctx.request.body;
+
+  let is_error = false;
+  const response = await db.raw(
+    `CALL bookstore.update_cart(\
+      ${user_id}::integer,\
+      ${book_id}::integer,\
+      ${qty}::integer\
+    )`,
+  ).catch(e => {
+    is_error = true;
+    console.error(e);
+    ctx.status = 400;
+    ctx.body = JSON.stringify({
+      status: 'error',
+      message: 'Не удалось обновить корзину',
+    });
+  });
+  if (is_error) return;
+
+  ctx.status = 200;
+  ctx.body = JSON.stringify({
+    status: 'ok',
+    message: 'Корзина обновлена',
+  });
 }
 
 async function clear_user_cart(ctx, next) {
@@ -419,7 +447,31 @@ async function remove_from_cart(ctx, next) {
 }
 
 async function create_order(ctx, next) {
-  await next();
+  const { user_id } = ctx.request.body;
+
+  let is_error = false;
+  const response = await db.raw(
+    `SELECT * FROM bookstore.create_order(\
+      ${user_id}::integer\
+    )`,
+  ).catch(e => {
+    is_error = true;
+    console.error(e);
+    ctx.status = 400;
+    ctx.body = JSON.stringify({
+      status: 'error',
+      message: 'Не удалось создать заказ',
+    });
+  });
+  if (is_error) return;
+
+  const { order_id } = response.rows[0];
+  ctx.status = 200;
+  ctx.body = JSON.stringify({
+    status: 'ok',
+    message: 'Заказ создан',
+    order_id,
+  });
 }
 
 module.exports = router => {
@@ -436,12 +488,10 @@ module.exports = router => {
     .post('/keep_book', is_authenticated, is_admin, keep_book)
     .patch('/update_book', is_authenticated, is_admin, update_book)
     .patch('/update_author', is_authenticated, is_admin, update_author)
-
     .get('/get_cart', is_authenticated, get_cart)
     .patch('/update_cart', is_authenticated, update_cart)
     .post('/clear_user_cart', is_authenticated, clear_user_cart)
     .post('/remove_from_cart', is_authenticated, remove_from_cart)
     .post('/create_order', is_authenticated, create_order)
-
     .all('*', get_all);
 };
