@@ -10,8 +10,8 @@ const {
 
 // Though it is a dirty hack
 // still acceptable for some time.
-// Refactor, if you know how to.
-const UNDEFINED_BILLING_ID = 0;
+// Fork and refactor, if you know how to.
+const UNDEFINED_INT = 0;
 
 async function get_authors(ctx) {
   const result = await db
@@ -52,12 +52,16 @@ async function add_author(ctx) {
   ).catch(console.error);
 
   ctx.status = 200;
-  ctx.body = JSON.stringify({ result: 'added' });
+  ctx.body = JSON.stringify({
+    status: 'success',
+    message: 'Автор добавлен',
+  });
 }
 
 async function add_book(ctx) {
   const {
     title,
+    price = UNDEFINED_INT,
     authors,
   } = ctx.request.body;
 
@@ -65,15 +69,133 @@ async function add_book(ctx) {
     .map(Number)
     .filter(n => !isNaN(n));
 
+  const is_error = false;
   const result = await db.raw(
     `SELECT * FROM bookstore.add_book(\
-      '${title}',\
+      '${title}'::text,\
+      NULLIF(${price}, 0),\
       ARRAY[${parsedAuthors}]\
     )`,
-  ).catch(console.error);
+  ).catch(e => {
+    is_error = true;
+    console.error(e);
+    ctx.status = 400;
+    ctx.body = JSON.stringify({
+      status: 'error',
+      message: 'Книга не была добавлена',
+    });
+  });
+  if (is_error) return;
 
   ctx.status = 200;
-  ctx.body = JSON.stringify(result);
+  ctx.body = JSON.stringify({
+    status: 'success',
+    message: 'Книга добавлена',
+  });
+}
+
+async function keep_book(ctx) {
+  const {
+    book_id,
+    qty,
+  } = ctx.request.body;
+
+  let is_error = false;
+  const result = await db.raw(
+    `CALL bookstore.keep_book(\
+      ${book_id}::integer,\
+      ${qty}::integer\
+    )`,
+  ).catch(e => {
+    is_error = true;
+    console.error(e);
+    ctx.status = 400;
+    ctx.body = JSON.stringify({
+      status: 'error',
+      message: 'Книги не были оприходованы. Попробуйте еще раз.',
+    });
+  });
+  if (is_error) return;
+
+  ctx.status = 200;
+  ctx.body = JSON.stringify({
+    status: 'success',
+    message: 'Книги оприходованы',
+  });
+}
+
+async function update_book(ctx) {
+  const {
+    book_id,
+    title,
+    price = UNDEFINED_INT,
+    qty,
+    authors,
+  } = ctx.request.body;
+
+  const parsedAuthors = authors
+    .map(Number)
+    .filter(n => !isNaN(n));
+
+  let is_error = false;
+  const result = await db.raw(
+    `CALL bookstore.update_book(\
+      ${book_id}::integer,\
+      '${title}'::text,\
+      ARRAY[${parsedAuthors}],\
+      NULLIF(${price}, 0),\
+      NULLIF(${qty}, 0)
+    )`,
+  ).catch(e => {
+    is_error = true;
+    console.error(e);
+    ctx.status = 400;
+    ctx.body = JSON.stringify({
+      status: 'error',
+      message: 'Книга не была обновлена. Попробуйте снова',
+    });
+  });
+  if (is_error) return;
+
+  ctx.status = 200;
+  ctx.body = JSON.stringify({
+    status: 'success',
+    message: 'Книга обновлена',
+  });
+}
+
+async function update_author(ctx) {
+  const {
+    author_id,
+    first_name,
+    last_name,
+    middle_name,
+  } = ctx.request.body;
+
+  let is_error = false;
+  const result = await db.raw(
+    `CALL bookstore.update_author(\
+      ${author_id}::integer,\
+      '${last_name}'::text,\
+      '${first_name}'::text,\
+      '${middle_name}'::text\
+    )`,
+  ).catch(e => {
+    is_error = true;
+    console.error(e);
+    ctx.status = 400;
+    ctx.body = JSON.stringify({
+      status: 'error',
+      message: 'Автор не был обновлен. Попробуйте снова',
+    });
+  });
+  if (is_error) return;
+
+  ctx.status = 200;
+  ctx.body = JSON.stringify({
+    status: 'success',
+    message: 'Автор обновлен',
+  });
 }
 
 function login(ctx, next) {
@@ -184,7 +306,7 @@ async function change_user(ctx, next) {
     login = '',
     password = '',
     // billing fields
-    billing_id = UNDEFINED_BILLING_ID,
+    billing_id = UNDEFINED_INT,
     first_name = '',
     last_name = '',
     middle_name = '',
@@ -268,5 +390,8 @@ module.exports = router => {
     .post('/add_author', is_authenticated, is_admin, add_author)
     .get('/books', get_books)
     .post('/add_book', is_authenticated, is_admin, add_book)
+    .post('/keep_book', is_authenticated, is_admin, keep_book)
+    .patch('/update_book', is_authenticated, is_admin, update_book)
+    .patch('/update_author', is_authenticated, is_admin, update_author)
     .all('*', get_all);
 };
