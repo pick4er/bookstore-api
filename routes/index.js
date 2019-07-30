@@ -53,7 +53,7 @@ async function add_author(ctx) {
 
   ctx.status = 200;
   ctx.body = JSON.stringify({
-    status: 'success',
+    status: 'ok',
     message: 'Автор добавлен',
   });
 }
@@ -89,7 +89,7 @@ async function add_book(ctx) {
 
   ctx.status = 200;
   ctx.body = JSON.stringify({
-    status: 'success',
+    status: 'ok',
     message: 'Книга добавлена',
   });
 }
@@ -119,7 +119,7 @@ async function keep_book(ctx) {
 
   ctx.status = 200;
   ctx.body = JSON.stringify({
-    status: 'success',
+    status: 'ok',
     message: 'Книги оприходованы',
   });
 }
@@ -159,7 +159,7 @@ async function update_book(ctx) {
 
   ctx.status = 200;
   ctx.body = JSON.stringify({
-    status: 'success',
+    status: 'ok',
     message: 'Книга обновлена',
   });
 }
@@ -193,7 +193,7 @@ async function update_author(ctx) {
 
   ctx.status = 200;
   ctx.body = JSON.stringify({
-    status: 'success',
+    status: 'ok',
     message: 'Автор обновлен',
   });
 }
@@ -379,6 +379,49 @@ async function change_user(ctx, next) {
   });
 }
 
+async function get_cart(ctx) {
+  const { user_id } = ctx.query;
+
+  let is_error = false;
+  const response = await db.raw(
+    `SELECT * FROM bookstore.get_cart(\
+      ${user_id}::integer\
+    )`,
+  ).catch(e => {
+    is_error = true;
+    console.error(e);
+    ctx.status = 400;
+    ctx.body = JSON.stringify({
+      status: 'error',
+      message: 'Не получилось достать корзину из базы',
+    });
+  });
+  if (is_error) return;
+
+  const cart = response.rows;
+  ctx.status = 200;
+  ctx.body = JSON.stringify({
+    status: 'ok',
+    cart,
+  });
+}
+
+async function update_cart(ctx, next) {
+  await next();
+}
+
+async function clear_user_cart(ctx, next) {
+  await next();
+}
+
+async function remove_from_cart(ctx, next) {
+  await next();
+}
+
+async function create_order(ctx, next) {
+  await next();
+}
+
 module.exports = router => {
   router
     .post('/login', login)
@@ -393,5 +436,12 @@ module.exports = router => {
     .post('/keep_book', is_authenticated, is_admin, keep_book)
     .patch('/update_book', is_authenticated, is_admin, update_book)
     .patch('/update_author', is_authenticated, is_admin, update_author)
+
+    .get('/get_cart', is_authenticated, get_cart)
+    .patch('/update_cart', is_authenticated, update_cart)
+    .post('/clear_user_cart', is_authenticated, clear_user_cart)
+    .post('/remove_from_cart', is_authenticated, remove_from_cart)
+    .post('/create_order', is_authenticated, create_order)
+
     .all('*', get_all);
 };
