@@ -16,7 +16,7 @@ module.exports = function derive_message(e) {
   }
 
   return {
-    status: 'undefined',
+    status: 'error',
     message: 'Необяснимая ошибка',
   }
 }

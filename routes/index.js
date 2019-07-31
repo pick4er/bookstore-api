@@ -14,20 +14,26 @@ const {
 const UNDEFINED_INT = 0;
 
 async function get_authors(ctx) {
-  const result = await db
+  const response = await db
     .select()
     .from('bookstore.authors_v');
 
-  ctx.body = JSON.stringify(result);
+  ctx.body = JSON.stringify({
+    status: 'ok',
+    authors: response,
+  });
   ctx.status = 200;
 }
 
 async function get_books(ctx) {
-  const result = await db
+  const response = await db
     .select()
     .from('bookstore.catalog_v');
 
-  ctx.body = JSON.stringify(result);
+  ctx.body = JSON.stringify({
+    status: 'ok',
+    books: response,
+  });
   ctx.status = 200;
 }
 
@@ -43,13 +49,23 @@ async function add_author(ctx) {
     last_name,
   } = ctx.request.body;
 
+  let is_error = false;
   const result = await db.raw(
     `SELECT * FROM bookstore.add_author(\
       '${last_name}',\
       '${first_name}',\
       '${middle_name}'\
     )`,
-  ).catch(console.error);
+  ).catch(e => {
+    is_error = true;
+    console.error(e);
+    ctx.status = 401;
+    ctx.body = JSON.stringify({
+      status: 'error',
+      message: 'Автор не был добавлен',
+    });
+  });
+  if (is_error) return;
 
   ctx.status = 200;
   ctx.body = JSON.stringify({
@@ -263,7 +279,7 @@ async function register(ctx) {
   ctx.status = 200;
   ctx.body = JSON.stringify({
     status: 'ok',
-    message: 'Registered successfully',
+    message: 'Успешно зарегистрирован',
   });
 }
 
@@ -273,7 +289,7 @@ function is_authenticated(ctx, next) {
   } else {
     ctx.status = 401;
     ctx.body = JSON.stringify({
-      status: 'error',
+      status: 'unauthorized',
       message: 'Не авторизован',
     });
   }
@@ -374,7 +390,7 @@ async function change_user(ctx, next) {
   ctx.status = 200;
   ctx.body = JSON.stringify({
     status: 'ok',
-    message: 'Patched!',
+    message: 'Обновлено!',
     user: get_user_fields(user),
   });
 }
