@@ -20,7 +20,9 @@
     "koa-router": "^7.4.0",
     "koa-session": "^5.12.2",
     "passport-local": "^1.0.0",
-    "pg": "^7.11.0"
+    "pg": "^7.11.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.4"
   },
   "devDependencies": {
     "babel-eslint": "^10.0.2",

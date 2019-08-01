@@ -1,4 +1,5 @@
 const passport = require('../passport');
+const request = require('request-promise');
 
 const db = require('../db');
 const derive_message = require('../db/messages');
@@ -481,13 +482,45 @@ async function create_order(ctx, next) {
   });
   if (is_error) return;
 
-  const { order_id } = response.rows[0];
+  const { create_order } = response.rows[0];
   ctx.status = 200;
   ctx.body = JSON.stringify({
     status: 'ok',
     message: 'Заказ создан',
-    order_id,
+    order_id: create_order,
   });
+
+  ctx.order_id = create_order;
+  return next();
+}
+
+async function send_order_to_bot(ctx, next) {
+  const { order_id } = ctx;
+
+  let is_bot_error = false;
+  const order_response = await db.raw(
+    `SELECT * FROM bookstore.get_order(\
+      ${order_id}::integer\
+    )`
+  ).catch(e => {
+    is_bot_error = true;
+    console.error(e);
+  });
+  if (is_bot_error) return;
+
+  const order = order_response.rows[0];
+
+  await request({
+    method: 'POST',
+    uri: 'https://bookstore-bot.herokuapp.com/',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: { 
+      order: JSON.stringify(order),
+    },
+    json: true,
+  }).catch(console.error);
 }
 
 module.exports = router => {
@@ -508,6 +541,6 @@ module.exports = router => {
     .patch('/update_cart', is_authenticated, update_cart)
     .post('/clear_user_cart', is_authenticated, clear_user_cart)
     .post('/remove_from_cart', is_authenticated, remove_from_cart)
-    .post('/create_order', is_authenticated, create_order)
+    .post('/create_order', is_authenticated, create_order, send_order_to_bot)
     .all('*', get_all);
 };
