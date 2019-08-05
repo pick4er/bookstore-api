@@ -38,6 +38,22 @@ async function get_books(ctx) {
   ctx.status = 200;
 }
 
+async function get_book(ctx) {
+  const { book_id } = ctx.query;
+
+  const response = await db
+    .select()
+    .from('bookstore.catalog_v')
+    .where('book_id', book_id)
+    .catch(console.error);
+
+  ctx.body = JSON.stringify({
+    status: 'ok',
+    book: response[0],
+  });
+  ctx.status = 200;
+}
+
 function get_all(ctx) {
   ctx.body = JSON.stringify({ status: 'ok' });
   ctx.status = 200;
@@ -533,6 +549,7 @@ module.exports = router => {
     .get('/authors', is_authenticated, is_admin, get_authors)
     .post('/add_author', is_authenticated, is_admin, add_author)
     .get('/books', get_books)
+    .get('/book', get_book)
     .post('/add_book', is_authenticated, is_admin, add_book)
     .post('/keep_book', is_authenticated, is_admin, keep_book)
     .patch('/update_book', is_authenticated, is_admin, update_book)
