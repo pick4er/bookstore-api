@@ -29,11 +29,18 @@ async function get_authors(ctx) {
 async function get_books(ctx) {
   const response = await db
     .select()
-    .from('bookstore.catalog_v');
+    .from('bookstore.catalog_v')
+    .catch(console.error);
 
+  const countResponse = await db.raw(`
+    SELECT count(*) FROM bookstore.catalog_v
+  `).catch(console.error);
+
+  const { count } = countResponse.rows[0];
   ctx.body = JSON.stringify({
     status: 'ok',
     books: response,
+    total: count,
   });
   ctx.status = 200;
 }
